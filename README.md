@@ -1,3 +1,4 @@
+````markdown
 # RISC-V Rust Development Environment
 
 A comprehensive development environment for creating and simulating Rust programs on various RISC-V processor cores.
@@ -5,20 +6,27 @@ A comprehensive development environment for creating and simulating Rust program
 ## 🚀 Quick Start
 
 ```bash
-# Set up the environment
-make setup
-
 # Check dependencies
 make check-deps
 
-# Run the hello-world example
-make example
+# Run the hello-world exampl## �📈 Future Enhancements
+
+- [ ] Support for more RISC-V cores (NEORV32, VexRiscv, etc.)
+- [ ] Integration with FPGA synthesis tools
+- [ ] Debug support with GDB
+- [x] Automated testing framework
+- [ ] Performance profiling tools
+- [ ] Documentation generation
+- [ ] CI/CD pipeline integrationample
 
 # Create a new project
 make create-project PROJECT=my-project
 
 # Build and simulate
 make simulate PROJECT=my-project
+
+# Run tests
+make test-hello-world
 ```
 
 ## 📁 Project Structure
@@ -35,8 +43,7 @@ riscv-rust/
 ├── tools/               # Python development tools
 │   ├── __init__.py
 │   ├── project_manager.py
-│   ├── simulator.py
-│   └── bin_converter.py
+│   └── simulator.py
 ├── build/               # Build artifacts and simulation outputs
 ├── scripts/             # Additional build scripts
 └── .git/               # Git repository
@@ -75,22 +82,15 @@ python3 tools/simulator.py core-info picorv32
 python3 tools/simulator.py run picorv32 path/to/binary.elf
 ```
 
-### Binary Converter
-Converts binary files to hex format for Verilog memory initialization.
+### Binary Conversion
+Binary files are converted to hex format for Verilog memory initialization using the RISC-V GNU toolchain.
 
 ```bash
-# Convert binary to hex
-python3 tools/bin_converter.py input.bin output.hex
-
-# With options
-python3 tools/bin_converter.py input.bin output.hex --word-size 4 --endianness little
+# Using objcopy directly
+riscv64-unknown-elf-objcopy -O binary input.elf output.bin
 ```
 
-## 🎯 Makefile Targets
-
-### Setup and Dependencies
-- `make setup` - Set up the development environment
-- `make check-deps` - Check if all dependencies are installed
+### Makefile Targets
 
 ### Project Management
 - `make create-project PROJECT=name` - Create a new project
@@ -138,7 +138,8 @@ To add a new RISC-V core:
   "simulator": "iverilog",
   "memory": {
     "base_address": "0x00000000",
-    "size": "64K"
+    "size": "64K",
+    "word_size": 4
   },
   "uart": {
     "base_address": "0x02000000"
@@ -173,6 +174,7 @@ projects/my-project/
 - Rust toolchain (nightly)
 - RISC-V target: `riscv32i-unknown-none-elf`
 - cargo-binutils
+- RISC-V GNU Toolchain (riscv64-unknown-elf-gcc, riscv64-unknown-elf-objcopy)
 - Icarus Verilog (iverilog)
 - Python 3
 
@@ -246,15 +248,31 @@ make test-all
 ### Test Framework Features
 - Automatic verification of program output
 - Captures UART output for validation
-- Pass/fail reporting
-- Detailed test logs
+- Pass/fail reporting with clear indicators (✅/❌)
+- Detailed test logs showing UART output and simulation results
 
-Tests check for expected patterns in the UART output. The hello-world example
-tests for the presence of "Hello" in the output.
+The testing framework captures UART output during simulation and validates it against expected patterns. For example, the hello-world test checks for "Hello" in the output. The framework reports test results with clear pass/fail indicators and displays the captured UART output for debugging.
+
+The testbench.v file includes verification logic that:
+- Captures all UART output
+- Verifies output contains expected text
+- Reports test status (PASS/FAIL)
+- Times out long-running tests appropriately
+
+Example output:
+```
+✅ TEST PASSED
+
+--- UART Output ---
+Hello, World from Rust on PicoRV32!
+------------------
+```
 
 ## �📈 Future Enhancements
 
 - [ ] Support for more RISC-V cores (NEORV32, VexRiscv, etc.)
+- [ ] Add benchmarking test suite for different cores
+- [ ] Add memory compiler and models
 - [ ] Integration with FPGA synthesis tools
 - [ ] Debug support with GDB
 - [ ] Automated testing framework
@@ -280,3 +298,33 @@ This project is open source. See individual core licenses for their respective t
 - [Rust Embedded Book](https://doc.rust-lang.org/embedded-book/)
 - [PicoRV32 GitHub](https://github.com/YosysHQ/picorv32)
 - [Icarus Verilog](http://iverilog.icarus.com/)
+
+## 📝 Recent Updates
+
+The following improvements have been made to the repository:
+
+1. **Makefile Simplification**
+   - Removed redundant quick-start target
+   - Added comprehensive testing targets
+   - Simplified build process
+
+2. **Integration with Official RISC-V Tools**
+   - Replaced custom `bin_converter.py` with RISC-V GNU toolchain (`riscv64-unknown-elf-objcopy`)
+   - Improved binary to hex conversion with proper padding
+
+3. **Memory Configuration Enhancement**
+   - Added `word_size` parameter to core.json
+   - Ensured consistent memory sizing across tools
+
+4. **Comprehensive Testing Framework**
+   - Added UART output capture and verification in testbench.v
+   - Implemented pass/fail status reporting
+   - Added test timeout mechanism
+   - Clear display of test results and UART output
+
+5. **Bug Fixes**
+   - Fixed Python runtime warnings
+   - Corrected Verilog memory initialization
+   - Improved hex file generation with proper padding
+
+These changes enhance the maintainability, reliability, and usability of the RISC-V Rust development environment.
