@@ -1,0 +1,31 @@
+{
+  "name": "picorv32",
+  "description": "PicoRV32 - A Size-Optimized RISC-V CPU",
+  "author": "YosysHQ",
+  "version": "1.0",
+  "verilog_files": [
+    "picorv32.v",
+    "testbench.v"
+  ],
+  "simulator": "iverilog",
+  "memory": {
+    "base_address": "0x00000000",
+    "size": "64K",
+    "word_size": 4
+  },
+  "uart": {
+    "base_address": "0x02000000"
+  },
+  "features": [
+    "RV32I",
+    "Memory-mapped UART",
+    "Configurable parameters"
+  ],
+  "parameters": {
+    "ENABLE_COUNTERS": 1,
+    "ENABLE_REGS_16_31": 1,
+    "ENABLE_REGS_DUALPORT": 1,
+    "PROGADDR_RESET": "32'h00000000",
+    "STACKADDR": "32'h00010000"
+  }
+}

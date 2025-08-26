@@ -1,0 +1,10 @@
+# RISC-V Rust Development Tools Requirements
+# ===========================================
+
+# No external Python dependencies required for basic functionality
+# All tools use only Python standard library
+
+# Optional dependencies for enhanced functionality:
+# click>=8.0.0  # For better CLI interfaces
+# rich>=10.0.0  # For rich terminal output
+# pyyaml>=6.0   # For YAML configuration support

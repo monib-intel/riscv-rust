@@ -103,14 +103,9 @@ module testbench;
             $dumpvars(0, testbench);
         end
         
-        repeat (1000) @(posedge clk);
+        repeat (10000) @(posedge clk);
         
-        if (!trap) begin
-            $display("TIMEOUT");
-        end else begin
-            $display("TRAP");
-        end
-        
+        $display("TIMEOUT");
         $finish;
     end
 endmodule

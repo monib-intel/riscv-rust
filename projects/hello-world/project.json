@@ -1,0 +1,14 @@
+{
+  "name": "hello-world",
+  "description": "Hello World example for RISC-V",
+  "template": "hello-world",
+  "target": "riscv32i-unknown-none-elf",
+  "core": "picorv32",
+  "memory": {
+    "origin": "0x00000000",
+    "length": "64K"
+  },
+  "uart_base": "0x02000000",
+  "created": "2025-08-26",
+  "version": "0.1.0"
+}

@@ -1,0 +1,48 @@
+# Build artifacts
+output/
+build/
+target/
+*.bin
+*.hex
+*.vcd
+*_sim
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Rust artifacts
+Cargo.lock
+*.rlib
+*.rmeta
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Project-specific build files
+projects/*/target/
+projects/*/*.bin
+projects/*/*.hex
+projects/*/*.vcd
