@@ -105,6 +105,11 @@ python3 tools/bin_converter.py input.bin output.hex --word-size 4 --endianness l
 - `make simulate PROJECT=name CORE=name` - Simulate a project
 - `make simulate-vcd PROJECT=name CORE=name` - Simulate with VCD output
 
+### Testing
+- `make run-test PROJECT=name CORE=name` - Run tests for a specific project on a core
+- `make test-hello-world` - Run the hello-world example test
+- `make test-all` - Run tests for all projects on all cores
+
 ### Core Management
 - `make list-cores` - List available cores
 - `make core-info CORE=name` - Show core information
@@ -222,7 +227,32 @@ make simulate PROJECT=my-example CORE=picorv32
 make simulate-vcd PROJECT=my-example CORE=picorv32
 ```
 
-## 📈 Future Enhancements
+## � Testing
+
+The environment includes a test framework for validating RISC-V programs:
+
+### Running Tests
+```bash
+# Run test for a specific project
+make run-test PROJECT=my-project CORE=picorv32
+
+# Run the hello-world test
+make test-hello-world
+
+# Run all tests
+make test-all
+```
+
+### Test Framework Features
+- Automatic verification of program output
+- Captures UART output for validation
+- Pass/fail reporting
+- Detailed test logs
+
+Tests check for expected patterns in the UART output. The hello-world example
+tests for the presence of "Hello" in the output.
+
+## �📈 Future Enhancements
 
 - [ ] Support for more RISC-V cores (NEORV32, VexRiscv, etc.)
 - [ ] Integration with FPGA synthesis tools

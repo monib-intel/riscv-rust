@@ -183,19 +183,30 @@ clean-all: clean ## Clean everything including generated files
 	@rm -f *.hex *.vcd *_sim
 	@echo "Deep clean complete"
 
-## Development helpers
-.PHONY: format
-format: ## Format all Python code
-	@find $(TOOLS_DIR) -name "*.py" -exec $(PYTHON) -m black {} \; 2>/dev/null || echo "Install black for formatting: pip install black"
+## Testing
+.PHONY: run-test
+run-test: check-project build ## Run tests for a project (PROJECT=name, CORE=name)
+	@echo "Running test: $(PROJECT) on $(CORE)"
+	@mkdir -p $(OUTPUT_DIR)/$(PROJECT)
+	@cd $(PROJECTS_DIR)/$(PROJECT) && . "$$HOME/.cargo/env" && cargo objcopy --release -- -O binary $(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin
+	@BINARY_PATH="$(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin"; \
+	$(SIMULATOR) run $(CORE) "$$BINARY_PATH" --test
 
-.PHONY: lint
-lint: ## Lint Python code
-	@find $(TOOLS_DIR) -name "*.py" -exec $(PYTHON) -m flake8 {} \; 2>/dev/null || echo "Install flake8 for linting: pip install flake8"
+.PHONY: test-hello-world
+test-hello-world: ## Run the hello-world test
+	@$(MAKE) run-test PROJECT=hello-world CORE=picorv32
 
-.PHONY: test
-test: ## Run tests
-	@echo "Running tests..."
-	@$(PYTHON) -m pytest tests/ 2>/dev/null || echo "No tests found or pytest not installed"
+.PHONY: test-all
+test-all: ## Run tests for all projects on all cores
+	@echo "Running all tests..."
+	@for project in $$($(PROJECT_MANAGER) list | tail -n +2 | sed 's/^  - //'); do \
+		for core in $$($(SIMULATOR) list-cores | tail -n +2 | sed 's/^  - //'); do \
+			echo "=== Testing $$project on $$core ==="; \
+			$(MAKE) run-test PROJECT=$$project CORE=$$core || echo "Test failed: $$project on $$core"; \
+			echo; \
+		done; \
+	done
+	@echo "All tests completed"
 
 ## Internal helpers
 .PHONY: check-project

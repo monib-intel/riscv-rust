@@ -260,12 +260,42 @@ class SimulatorRunner:
             timeout=timeout
         )
         
+        # Check for test results
+        test_result_file = sim_dir / "test_result.txt"
+        uart_output_file = sim_dir / "uart_output.txt"
+        
+        test_status = "UNKNOWN"
+        uart_output = ""
+        
+        if test_result_file.exists():
+            test_status = test_result_file.read_text().strip()
+        
+        if uart_output_file.exists():
+            uart_output = uart_output_file.read_text()
+        
+        # Format the output with test results and UART output
+        formatted_output = run_result.stdout
+        
+        # Add a colorful test result
+        if test_status == "PASS":
+            formatted_output += f"\n\n✅ TEST PASSED\n"
+        elif test_status == "FAIL":
+            formatted_output += f"\n\n❌ TEST FAILED\n"
+        
+        # Add the UART output
+        if uart_output:
+            formatted_output += "\n--- UART Output ---\n"
+            formatted_output += uart_output
+            formatted_output += "\n------------------\n"
+        
         result = {
             "success": run_result.returncode == 0,
             "returncode": run_result.returncode,
-            "stdout": run_result.stdout,
+            "stdout": formatted_output,
             "stderr": run_result.stderr,
-            "sim_dir": str(sim_dir)
+            "sim_dir": str(sim_dir),
+            "test_status": test_status,
+            "uart_output": uart_output
         }
         
         if vcd_output:
@@ -331,6 +361,7 @@ def main():
     run_parser.add_argument("binary", type=Path, help="Program binary")
     run_parser.add_argument("--vcd", action="store_true", help="Generate VCD output")
     run_parser.add_argument("--timeout", type=int, default=10000, help="Timeout in cycles")
+    run_parser.add_argument("--test", action="store_true", help="Run in test mode with verification")
     
     args = parser.parse_args()
     
@@ -368,8 +399,24 @@ def main():
             
             if result["success"]:
                 print("Simulation completed successfully")
-                print("Output:")
+                
+                # Display test status if available
+                if "test_status" in result:
+                    if result["test_status"] == "PASS":
+                        print("\n✅ TEST PASSED")
+                    elif result["test_status"] == "FAIL":
+                        print("\n❌ TEST FAILED")
+                
+                # Display UART output in a formatted way
+                if "uart_output" in result and result["uart_output"].strip():
+                    print("\n--- UART Output ---")
+                    print(result["uart_output"])
+                    print("------------------")
+                
+                # Display general simulation output
+                print("\nSimulation Log:")
                 print(result["stdout"])
+                
                 if "vcd_file" in result:
                     print(f"VCD file: {result['vcd_file']}")
             else:
