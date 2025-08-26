@@ -99,10 +99,36 @@ class SimulatorRunner:
             
             program_binary = raw_binary
         
+        # Import BinaryToHexConverter and use it
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from tools.bin_converter import BinaryToHexConverter
         
-        converter = BinaryToHexConverter()
-        converter.convert(program_binary, hex_file)
+        # Get word size from core_info (default to 4 bytes for 32-bit)
+        word_size = core_info.get("memory", {}).get("word_size", 4)
+        
+        # Create converter with the specified word size
+        converter = BinaryToHexConverter(word_size=word_size)
+        # Get memory size from core_info
+        memory_size_str = core_info.get("memory", {}).get("size", "64K")
+        if "K" in memory_size_str:
+            memory_size = int(memory_size_str.replace("K", "")) * 1024
+        else:
+            memory_size = int(memory_size_str)
+            
+        # Get word size from core_info (default to 4 bytes for 32-bit)
+        word_size = core_info.get("memory", {}).get("word_size", 4)
+        memory_words = memory_size // word_size
+        
+        # Add extra words to match the testbench memory size (16384 words)
+        memory_words = max(memory_words, 16384)
+        
+        # Print debug info
+        print(f"Memory size: {memory_size} bytes, word size: {word_size} bytes, {memory_words} words")
+        
+        # Convert binary to hex with padding
+        converter.convert(program_binary, hex_file, min_words=memory_words)
         
         # Copy core files to simulation directory
         for verilog_file in core_info.get("verilog_files", []):

@@ -16,9 +16,9 @@ SCRIPTS_DIR := scripts
 PYTHON := python3
 
 # Tools
-PROJECT_MANAGER := PYTHONPATH=. $(PYTHON) -m tools.project_manager
-SIMULATOR := PYTHONPATH=. $(PYTHON) -m tools.simulator  
-BIN_CONVERTER := PYTHONPATH=. $(PYTHON) -m tools.bin_converter
+PROJECT_MANAGER := $(PYTHON) $(TOOLS_DIR)/project_manager.py
+SIMULATOR := $(PYTHON) $(TOOLS_DIR)/simulator.py
+BIN_CONVERTER := $(PYTHON) $(TOOLS_DIR)/bin_converter.py
 
 # Default values
 PROJECT ?= hello-world
@@ -188,9 +188,6 @@ check-core:
 example: ## Run the hello-world example
 	@echo "Running hello-world example..."
 	@$(MAKE) simulate PROJECT=hello-world CORE=picorv32
-
-.PHONY: quick-start
-quick-start: setup create-project example ## Complete quick start setup and example
 
 # Include any additional makefiles
 -include $(wildcard $(SCRIPTS_DIR)/*.mk)

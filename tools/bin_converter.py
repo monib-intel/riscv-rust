@@ -27,13 +27,14 @@ class BinaryToHexConverter:
         self.word_size = word_size
         self.endianness = endianness
     
-    def convert(self, input_file: Path, output_file: Path) -> None:
+    def convert(self, input_file: Path, output_file: Path, min_words: int = 0) -> None:
         """
         Convert binary file to hex format.
         
         Args:
             input_file: Path to input binary file
             output_file: Path to output hex file
+            min_words: Minimum number of words to output (pad with zeros if needed)
         """
         with open(input_file, 'rb') as f:
             data = f.read()
@@ -42,20 +43,33 @@ class BinaryToHexConverter:
         while len(data) % self.word_size != 0:
             data += b'\x00'
         
+        # Calculate how many words we'll write
+        words_to_write = max(len(data) // self.word_size, min_words)
+        
+        print(f"Converting binary: {len(data)} bytes, padding to {words_to_write} words")
+        
         with open(output_file, 'w') as f:
+            # Write data from binary file
             for i in range(0, len(data), self.word_size):
                 word = data[i:i+self.word_size]
-                if len(word) == self.word_size:
-                    if self.endianness == "little":
-                        # Convert little-endian to big-endian for readmemh
-                        val = sum(word[j] << (8 * (self.word_size - 1 - j)) 
-                                for j in range(self.word_size))
-                    else:
-                        # Already big-endian
-                        val = sum(word[j] << (8 * (self.word_size - 1 - j)) 
-                                for j in range(self.word_size))
-                    
-                    f.write(f"{val:0{self.word_size*2}x}\n")
+                if len(word) < self.word_size:
+                    # Pad last word if needed
+                    word = word + b'\x00' * (self.word_size - len(word))
+                
+                if self.endianness == "little":
+                    # Little endian: least significant byte first
+                    val = int.from_bytes(word, byteorder="little")
+                else:
+                    # Big endian: most significant byte first
+                    val = int.from_bytes(word, byteorder="big")
+                
+                f.write(f"{val:0{self.word_size*2}x}\n")
+            
+            # Fill remaining words with zeros if min_words > actual words
+            remaining_words = words_to_write - (len(data) // self.word_size)
+            if remaining_words > 0:
+                for _ in range(remaining_words):
+                    f.write("00000000\n")
     
     def get_info(self, input_file: Path) -> dict:
         """Get information about the binary file."""

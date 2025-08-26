@@ -36,7 +36,7 @@ module testbench;
         for (i = 0; i < MEM_SIZE/4; i = i + 1)
             memory[i] = 32'h0;
             
-        $readmemh("hello_world.hex", memory);
+        $readmemh("program.hex", memory);
     end
 
     // PicoRV32 memory interface
