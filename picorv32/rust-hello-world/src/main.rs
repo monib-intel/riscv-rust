@@ -30,9 +30,9 @@ fn uart_puts(s: &str) {
     }
 }
 
-// Main function called from assembly startup code
+// Entry point directly - no separate assembly
 #[no_mangle]
-pub extern "C" fn main() -> ! {
+pub extern "C" fn _start() -> ! {
     // Print hello world message
     uart_puts("Hello, World from Rust on PicoRV32!\r\n");
     

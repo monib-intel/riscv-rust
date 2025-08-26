@@ -4,14 +4,14 @@ module picorv32_testbench_custom (
 );
     parameter MEM_SIZE = 65536;
     
-    reg mem_valid;
-    reg mem_instr;
-    wire mem_ready;
+    wire mem_valid;
+    wire mem_instr;
+    reg mem_ready;
     
-    reg [31:0] mem_addr;
-    reg [31:0] mem_wdata;
-    reg [ 3:0] mem_wstrb;
-    wire [31:0] mem_rdata;
+    wire [31:0] mem_addr;
+    wire [31:0] mem_wdata;
+    wire [ 3:0] mem_wstrb;
+    reg [31:0] mem_rdata;
     
     wire mem_la_read;
     wire mem_la_write;
@@ -81,8 +81,9 @@ module picorv32_testbench_custom (
     end
     
     // Memory handling
-    assign mem_ready = 1;
-    assign mem_rdata = m_read_data;
+    always @* begin
+        mem_ready = 1;
+    end
     
     always @(posedge clk) begin
         m_read_en <= 0;
@@ -106,10 +107,15 @@ module picorv32_testbench_custom (
         end
     end
     
+    // Connect memory read data to processor
+    always @(posedge clk) begin
+        mem_rdata <= m_read_data;
+    end
+    
     // Initialize memory with program
     initial begin
         // Load the compiled Rust program here
-        $readmemh("../rust-hello-world/hello_world.hex", memory);
+        $readmemh("hello_world.hex", memory);
     end
     
     // Simple test bench to monitor simulation
@@ -117,7 +123,7 @@ module picorv32_testbench_custom (
         $display("Starting PicoRV32 simulation with Rust hello-world program");
         
         // Run for a reasonable amount of time
-        #10000;
+        #1000000;
         
         $display("Simulation complete");
         $finish;

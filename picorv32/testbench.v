@@ -14,12 +14,13 @@ module testbench;
 
     // UART output handling
     reg [7:0] uart_tx_data;
-    wire uart_tx_valid;
+    reg uart_tx_valid = 0;
 
     always @(posedge clk) begin
         if (uart_tx_valid) begin
             $write("%c", uart_tx_data);
             $fflush();
+            uart_tx_valid <= 0; // Clear after printing
         end
     end
 
@@ -35,7 +36,7 @@ module testbench;
         for (i = 0; i < MEM_SIZE/4; i = i + 1)
             memory[i] = 32'h0;
             
-        $readmemh("rust-hello-world/target/riscv32i-unknown-none-elf/release/firmware.hex", memory);
+        $readmemh("hello_world.hex", memory);
     end
 
     // PicoRV32 memory interface
