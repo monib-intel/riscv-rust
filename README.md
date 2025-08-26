@@ -246,23 +246,16 @@ make test-all
 ```
 
 ### Test Framework Features
-- Automatic verification of program output
-- Captures UART output for validation
-- Pass/fail reporting with clear indicators (✅/❌)
-- Detailed test logs showing UART output and simulation results
+- Captures UART output to file for external validation
+- Provides simulation output for debugging
 
-The testing framework captures UART output during simulation and validates it against expected patterns. For example, the hello-world test checks for "Hello" in the output. The framework reports test results with clear pass/fail indicators and displays the captured UART output for debugging.
-
-The testbench.v file includes verification logic that:
-- Captures all UART output
-- Verifies output contains expected text
-- Reports test status (PASS/FAIL)
-- Times out long-running tests appropriately
+The testbench.v file is kept simple and modular:
+- Captures all UART output to console and file
+- Simulates for a fixed number of cycles
+- Easily adaptable for different cores
 
 Example output:
 ```
-✅ TEST PASSED
-
 --- UART Output ---
 Hello, World from Rust on PicoRV32!
 ------------------
@@ -316,11 +309,10 @@ The following improvements have been made to the repository:
    - Added `word_size` parameter to core.json
    - Ensured consistent memory sizing across tools
 
-4. **Comprehensive Testing Framework**
-   - Added UART output capture and verification in testbench.v
-   - Implemented pass/fail status reporting
-   - Added test timeout mechanism
-   - Clear display of test results and UART output
+4. **Simple Testbench Framework**
+   - Added UART output capture in testbench.v
+   - Simplified and modular design for easy extension to other cores
+   - Clear display of UART output
 
 5. **Bug Fixes**
    - Fixed Python runtime warnings

@@ -99,7 +99,26 @@ check-deps: ## Check if all dependencies are installed
 ## Project management
 .PHONY: create-project
 create-project: ## Create a new project (PROJECT=name)
-	$(PROJECT_MANAGER) create $(PROJECT)
+	@echo "Creating project $(PROJECT)..."
+	@mkdir -p $(PROJECTS_DIR)/$(PROJECT)/src
+	@mkdir -p $(PROJECTS_DIR)/$(PROJECT)/.cargo
+	
+	@# Create Cargo.toml
+	@echo '[package]\nname = "$(PROJECT)"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\n\n[profile.dev]\npanic = "abort"\nopt-level = "s"\n\n[profile.release]\npanic = "abort"\nopt-level = "s"\nlto = true\ncodegen-units = 1' > $(PROJECTS_DIR)/$(PROJECT)/Cargo.toml
+	
+	@# Create .cargo/config.toml
+	@echo '[build]\ntarget = "riscv32i-unknown-none-elf"\nrustflags = [\n  "-C", "link-arg=-Tmemory.x",\n  "-C", "link-arg=-Map=target/memory.map",\n  "-C", "link-arg=--gc-sections",\n  "-C", "linker=rust-lld",\n  "-C", "default-linker-libraries=no"\n]\n\n[unstable]\nbuild-std = ["core", "compiler_builtins"]\nbuild-std-features = ["compiler-builtins-mem"]\n\n[target.riscv32i-unknown-none-elf]\nrunner = "echo '\''Use simulator instead:'\'"' > $(PROJECTS_DIR)/$(PROJECT)/.cargo/config.toml
+	
+	@# Create memory.x
+	@echo 'MEMORY\n{\n  /* RISC-V memory layout */\n  RAM : ORIGIN = 0x00000000, LENGTH = 64K\n}\n\nSECTIONS\n{\n  /* .text section containing code */\n  .text :\n  {\n    *(.text.entry)   /* Entry point */\n    *(.text*)        /* All other code sections */\n    . = ALIGN(4);\n  } > RAM\n\n  /* .rodata section containing constants */\n  .rodata :\n  {\n    *(.rodata*)      /* Read-only data */\n    . = ALIGN(4);\n  } > RAM\n\n  /* .data section containing initialized variables */\n  .data :\n  {\n    *(.data*)        /* Initialized data */\n    . = ALIGN(4);\n  } > RAM\n\n  /* .bss section containing uninitialized variables */\n  .bss (NOLOAD) :\n  {\n    _bss_start = .;\n    *(.bss*)         /* Uninitialized data */\n    *(COMMON)        /* Common block */\n    . = ALIGN(4);\n    _bss_end = .;\n  } > RAM\n\n  /* Stack grows downward from the end of RAM */\n  _stack_start = ORIGIN(RAM) + LENGTH(RAM);\n}' > $(PROJECTS_DIR)/$(PROJECT)/memory.x
+	
+	@# Create basic main.rs
+	@echo '#![no_std]\n#![no_main]\n\nuse core::panic::PanicInfo;\n\n// UART base address - adjust based on your core configuration\nconst UART_TX_ADDR: usize = 0x02000000;\n\n#[panic_handler]\nfn panic(_info: &PanicInfo) -> ! {\n    loop {}\n}\n\n// Simple function to write to a memory-mapped register\nunsafe fn write_mmio(addr: usize, val: u8) {\n    core::ptr::write_volatile(addr as *mut u8, val);\n}\n\n// Write a byte to UART\nfn uart_putc(c: u8) {\n    unsafe {\n        write_mmio(UART_TX_ADDR, c);\n    }\n}\n\n// Write a string to UART\nfn uart_puts(s: &str) {\n    for c in s.bytes() {\n        uart_putc(c);\n    }\n}\n\n// Entry point\n#[no_mangle]\npub extern "C" fn _start() -> ! {\n    uart_puts("Hello, World from Rust on RISC-V!\\r\\n");\n    \n    // Loop forever\n    loop {}\n}' > $(PROJECTS_DIR)/$(PROJECT)/src/main.rs
+	
+	@# Create project.json
+	@echo '{\n  "name": "$(PROJECT)",\n  "target": "riscv32i-unknown-none-elf",\n  "core": "picorv32",\n  "memory": {\n    "origin": "0x00000000",\n    "length": "64K"\n  },\n  "uart_base": "0x02000000"\n}' > $(PROJECTS_DIR)/$(PROJECT)/project.json
+	
+	@echo "Created project $(PROJECT) at $(PROJECTS_DIR)/$(PROJECT)"
 
 .PHONY: list-projects
 list-projects: ## List all projects
@@ -113,17 +132,19 @@ project-info: ## Show project information (PROJECT=name)
 .PHONY: build
 build: check-project ## Build a project (PROJECT=name, RELEASE=true/false)
 	@echo "Building project $(PROJECT)..."
-	@if [ "$(RELEASE)" = "true" ]; then \
-		$(PROJECT_MANAGER) build $(PROJECT); \
+	@cd $(PROJECTS_DIR)/$(PROJECT) && . "$$HOME/.cargo/env" && \
+	if [ "$(RELEASE)" = "true" ]; then \
+		cargo build --release --target riscv32i-unknown-none-elf; \
 	else \
-		$(PROJECT_MANAGER) build $(PROJECT) --debug; \
+		cargo build --target riscv32i-unknown-none-elf; \
 	fi
 
 .PHONY: build-all
 build-all: ## Build all projects
 	@for project in $$($(PROJECT_MANAGER) list | tail -n +2 | sed 's/^  - //'); do \
 		echo "Building $$project..."; \
-		$(PROJECT_MANAGER) build $$project || echo "Failed to build $$project"; \
+		cd $(PROJECTS_DIR)/$$project && . "$$HOME/.cargo/env" && \
+		cargo build --release --target riscv32i-unknown-none-elf || echo "Failed to build $$project"; \
 	done
 
 ## Simulation
@@ -131,7 +152,8 @@ build-all: ## Build all projects
 simulate: check-project build ## Simulate a project (PROJECT=name, CORE=name)
 	@echo "Running simulation: $(PROJECT) on $(CORE)"
 	@mkdir -p $(OUTPUT_DIR)/$(PROJECT)
-	@cd $(PROJECTS_DIR)/$(PROJECT) && . "$$HOME/.cargo/env" && cargo objcopy --release -- -O binary $(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin
+	@cd $(PROJECTS_DIR)/$(PROJECT) && . "$$HOME/.cargo/env" && \
+	cargo objcopy --release -- -O binary $(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin
 	@BINARY_PATH="$(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin"; \
 	$(SIMULATOR) run $(CORE) "$$BINARY_PATH"
 
@@ -139,7 +161,8 @@ simulate: check-project build ## Simulate a project (PROJECT=name, CORE=name)
 simulate-vcd: check-project build ## Simulate with VCD output (PROJECT=name, CORE=name)
 	@echo "Running simulation with VCD: $(PROJECT) on $(CORE)"
 	@mkdir -p $(OUTPUT_DIR)/$(PROJECT)
-	@cd $(PROJECTS_DIR)/$(PROJECT) && . "$$HOME/.cargo/env" && cargo objcopy --release -- -O binary $(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin
+	@cd $(PROJECTS_DIR)/$(PROJECT) && . "$$HOME/.cargo/env" && \
+	cargo objcopy --release -- -O binary $(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin
 	@BINARY_PATH="$(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin"; \
 	$(SIMULATOR) run $(CORE) "$$BINARY_PATH" --vcd
 
@@ -188,7 +211,8 @@ clean-all: clean ## Clean everything including generated files
 run-test: check-project build ## Run tests for a project (PROJECT=name, CORE=name)
 	@echo "Running test: $(PROJECT) on $(CORE)"
 	@mkdir -p $(OUTPUT_DIR)/$(PROJECT)
-	@cd $(PROJECTS_DIR)/$(PROJECT) && . "$$HOME/.cargo/env" && cargo objcopy --release -- -O binary $(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin
+	@cd $(PROJECTS_DIR)/$(PROJECT) && . "$$HOME/.cargo/env" && \
+	cargo objcopy --release -- -O binary $(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin
 	@BINARY_PATH="$(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin"; \
 	$(SIMULATOR) run $(CORE) "$$BINARY_PATH" --test
 
