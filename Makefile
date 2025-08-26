@@ -12,8 +12,11 @@ OUTPUT_DIR := output
 BUILD_DIR := $(OUTPUT_DIR)/build
 SCRIPTS_DIR := scripts
 
-# Python interpreter
+# Python interpreter and virtual environment
 PYTHON := python3
+VENV_DIR := $(CURDIR)/.venv
+VENV_PYTHON := $(VENV_DIR)/bin/python3
+VENV_PYTEST := $(VENV_DIR)/bin/pytest
 
 # Tools
 PROJECT_MANAGER := $(PYTHON) $(TOOLS_DIR)/project_manager.py
@@ -71,7 +74,21 @@ setup: ## Set up the development environment
 		echo "  macOS: brew install riscv-gnu-toolchain"; \
 		echo "  or get prebuilt binaries from https://github.com/riscv-collab/riscv-gnu-toolchain"; \
 	fi
+	@$(MAKE) setup-python
 	@echo "Setup complete!"
+
+.PHONY: setup-python
+setup-python: ## Set up Python environment with uv
+	@echo "Setting up Python environment..."
+	@if ! command -v uv >/dev/null 2>&1; then \
+		echo "Installing uv..."; \
+		curl -LsSf https://astral.sh/uv/install.sh | sh; \
+	fi
+	@echo "Creating virtual environment at $(VENV_DIR)..."
+	@uv venv -p $(PYTHON) $(VENV_DIR)
+	@echo "Installing Python dependencies with uv..."
+	@uv pip install --python $(VENV_PYTHON) -r requirements.txt
+	@echo "Python setup complete!"
 
 .PHONY: check-deps
 check-deps: ## Check if all dependencies are installed
@@ -79,6 +96,7 @@ check-deps: ## Check if all dependencies are installed
 	@command -v rustup >/dev/null 2>&1 || (echo "❌ Rust not found" && exit 1)
 	@command -v iverilog >/dev/null 2>&1 || (echo "❌ Icarus Verilog not found" && exit 1)
 	@command -v $(PYTHON) >/dev/null 2>&1 || (echo "❌ Python 3 not found" && exit 1)
+	@command -v uv >/dev/null 2>&1 || (echo "❌ uv not found, run 'make setup-python'" && exit 1)
 	@if command -v riscv64-unknown-elf-objcopy >/dev/null 2>&1; then \
 		echo "✅ RISC-V GNU tools found"; \
 	elif command -v riscv32-unknown-elf-objcopy >/dev/null 2>&1; then \
@@ -93,6 +111,12 @@ check-deps: ## Check if all dependencies are installed
 		echo "✅ LLVM tools found (preferred for RISC-V)"; \
 	else \
 		echo "⚠️ No RISC-V binary tools found. Install riscv-gnu-toolchain or LLVM for better compatibility."; \
+	fi
+	@if [ -f "$(VENV_PYTEST)" ]; then \
+		echo "✅ pytest found in virtual environment"; \
+	else \
+		echo "❌ pytest not found in virtual environment, run 'make setup-python'"; \
+		exit 1; \
 	fi
 	@echo "✅ All dependencies found"
 
@@ -214,7 +238,7 @@ run-test: check-project build ## Run tests for a project (PROJECT=name, CORE=nam
 	@cd $(PROJECTS_DIR)/$(PROJECT) && . "$$HOME/.cargo/env" && \
 	cargo objcopy --release -- -O binary $(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin
 	@BINARY_PATH="$(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin"; \
-	$(SIMULATOR) run $(CORE) "$$BINARY_PATH" --test
+	$(SIMULATOR) run $(CORE) "$$BINARY_PATH"
 
 .PHONY: test-hello-world
 test-hello-world: ## Run the hello-world test
@@ -231,6 +255,27 @@ test-all: ## Run tests for all projects on all cores
 		done; \
 	done
 	@echo "All tests completed"
+
+## Regression Testing with pytest
+.PHONY: regression
+regression: check-deps ## Run pytest regression suite
+	@$(VENV_PYTHON) tools/run_regression.py -v
+
+.PHONY: regression-project
+regression-project: check-deps ## Run regression tests for a specific project (PROJECT=name)
+	@$(VENV_PYTHON) tools/run_regression.py -v --project=$(PROJECT)
+
+.PHONY: regression-core
+regression-core: check-deps ## Run regression tests on a specific core (CORE=name)
+	@$(VENV_PYTHON) tools/run_regression.py -v --core=$(CORE)
+
+.PHONY: regression-xml
+regression-xml: check-deps ## Run regression tests and generate JUnit XML report
+	@$(VENV_PYTHON) tools/run_regression.py -v --junit-xml=regression-results.xml
+
+.PHONY: regression-parallel
+regression-parallel: check-deps ## Run regression tests in parallel
+	@$(VENV_PYTHON) tools/run_regression.py -v --pytest-args="-n auto" --no-header
 
 ## Internal helpers
 .PHONY: check-project

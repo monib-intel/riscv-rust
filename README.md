@@ -268,7 +268,7 @@ Hello, World from Rust on PicoRV32!
 - [ ] Add memory compiler and models
 - [ ] Integration with FPGA synthesis tools
 - [ ] Debug support with GDB
-- [ ] Automated testing framework
+- [x] Automated testing framework
 - [ ] Performance profiling tools
 - [ ] Documentation generation
 - [ ] CI/CD pipeline integration
@@ -320,3 +320,28 @@ The following improvements have been made to the repository:
    - Improved hex file generation with proper padding
 
 These changes enhance the maintainability, reliability, and usability of the RISC-V Rust development environment.
+
+## 🧪 Regression Testing
+
+The project now features a comprehensive pytest-based regression testing framework. See [REGRESSION_TESTING.md](REGRESSION_TESTING.md) for detailed documentation.
+
+
+
+
+## 🧪 Regression Testing
+
+The project now features a comprehensive pytest-based regression testing framework. See [REGRESSION_TESTING.md](REGRESSION_TESTING.md) for detailed documentation.
+
+```bash
+# Set up Python environment with pytest
+make setup-python
+
+# Run all regression tests
+make regression
+
+# Run tests for a specific project
+make regression-project PROJECT=hello-world
+
+# Run tests in parallel for faster execution
+make regression-parallel
+```
