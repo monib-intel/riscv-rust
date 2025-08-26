@@ -1,0 +1,9 @@
+[build]
+target = "riscv32imac-unknown-none-elf"
+rustflags = [
+  "-C", "link-arg=-Tmemory.x",
+  "-C", "link-arg=-Map=target/memory.map",
+]
+
+[target.riscv32imac-unknown-none-elf]
+runner = "qemu-system-riscv32 -machine neorv32 -nographic -serial stdio -kernel"

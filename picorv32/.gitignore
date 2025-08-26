@@ -1,0 +1,17 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+Cargo.lock
+
+# Simulation artifacts
+*.vvp
+*.vcd
+*.log
+sim.vvp
+testbench.vcd
+
+# Object files
+*.o
+*.bin
+*.hex
+*.elf

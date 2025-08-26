@@ -1,0 +1,16 @@
+[package]
+name = "picorv32-hello-world"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# No external dependencies - we're using bare-metal Rust only
+
+[profile.dev]
+panic = "abort"  # Disable unwinding on panic in dev mode
+
+[profile.release]
+panic = "abort"  # Disable unwinding on panic in release mode
+opt-level = "s"  # Optimize for size
+lto = true       # Enable link-time optimization
+codegen-units = 1 # Use only one codegen unit to improve optimization
