@@ -18,7 +18,6 @@ PYTHON := python3
 # Tools
 PROJECT_MANAGER := $(PYTHON) $(TOOLS_DIR)/project_manager.py
 SIMULATOR := $(PYTHON) $(TOOLS_DIR)/simulator.py
-BIN_CONVERTER := $(PYTHON) $(TOOLS_DIR)/bin_converter.py
 
 # Default values
 PROJECT ?= hello-world
@@ -60,6 +59,18 @@ setup: ## Set up the development environment
 	@if ! command -v iverilog >/dev/null 2>&1; then \
 		echo "Please install Icarus Verilog: sudo apt-get install iverilog"; \
 	fi
+	@if ! command -v riscv64-unknown-elf-objcopy >/dev/null 2>&1 && \
+		! command -v riscv32-unknown-elf-objcopy >/dev/null 2>&1 && \
+		! command -v riscv-none-embed-objcopy >/dev/null 2>&1 && \
+		! command -v riscv-none-elf-objcopy >/dev/null 2>&1 && \
+		! command -v riscv-objcopy >/dev/null 2>&1 && \
+		! command -v llvm-objcopy >/dev/null 2>&1; then \
+		echo "Please install RISC-V GNU toolchain:"; \
+		echo "  Ubuntu/Debian: sudo apt-get install gcc-riscv64-unknown-elf"; \
+		echo "  Arch Linux: sudo pacman -S riscv64-elf-binutils"; \
+		echo "  macOS: brew install riscv-gnu-toolchain"; \
+		echo "  or get prebuilt binaries from https://github.com/riscv-collab/riscv-gnu-toolchain"; \
+	fi
 	@echo "Setup complete!"
 
 .PHONY: check-deps
@@ -68,6 +79,21 @@ check-deps: ## Check if all dependencies are installed
 	@command -v rustup >/dev/null 2>&1 || (echo "❌ Rust not found" && exit 1)
 	@command -v iverilog >/dev/null 2>&1 || (echo "❌ Icarus Verilog not found" && exit 1)
 	@command -v $(PYTHON) >/dev/null 2>&1 || (echo "❌ Python 3 not found" && exit 1)
+	@if command -v riscv64-unknown-elf-objcopy >/dev/null 2>&1; then \
+		echo "✅ RISC-V GNU tools found"; \
+	elif command -v riscv32-unknown-elf-objcopy >/dev/null 2>&1; then \
+		echo "✅ RISC-V GNU tools found"; \
+	elif command -v riscv-none-embed-objcopy >/dev/null 2>&1; then \
+		echo "✅ RISC-V GNU tools found"; \
+	elif command -v riscv-none-elf-objcopy >/dev/null 2>&1; then \
+		echo "✅ RISC-V GNU tools found"; \
+	elif command -v riscv-objcopy >/dev/null 2>&1; then \
+		echo "✅ RISC-V GNU tools found"; \
+	elif command -v llvm-objcopy >/dev/null 2>&1; then \
+		echo "✅ LLVM tools found (preferred for RISC-V)"; \
+	else \
+		echo "⚠️ No RISC-V binary tools found. Install riscv-gnu-toolchain or LLVM for better compatibility."; \
+	fi
 	@echo "✅ All dependencies found"
 
 ## Project management
@@ -129,7 +155,14 @@ core-info: ## Show core information (CORE=name)
 ## Utilities
 .PHONY: convert-bin
 convert-bin: ## Convert binary to hex (BIN=file.bin HEX=file.hex)
-	$(BIN_CONVERTER) $(BIN) $(HEX)
+	@echo "Converting $(BIN) to $(HEX)..."
+	@for objcopy in riscv64-unknown-elf-objcopy riscv32-unknown-elf-objcopy riscv-objcopy objcopy; do \
+		if command -v $$objcopy >/dev/null 2>&1; then \
+			$$objcopy -I binary -O verilog $(BIN) $(HEX) && exit 0; \
+		fi; \
+	done; \
+	echo "Error: No objcopy tool found. Please install RISC-V GNU toolchain."; \
+	exit 1
 
 .PHONY: clean
 clean: ## Clean build artifacts

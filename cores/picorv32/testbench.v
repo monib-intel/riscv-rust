@@ -26,17 +26,22 @@ module testbench;
 
     // Memory parameters
     parameter MEM_SIZE = 65536; // 64K
+    parameter MEM_WORDS = MEM_SIZE / 4;
     
     // Memory
-    reg [31:0] memory [0:MEM_SIZE/4-1];
+    reg [31:0] memory [0:MEM_WORDS-1];
     
     // Initialize memory with the firmware
     initial begin
         integer i;
-        for (i = 0; i < MEM_SIZE/4; i = i + 1)
+        // Initialize all memory to zero
+        for (i = 0; i < MEM_WORDS; i = i + 1)
             memory[i] = 32'h0;
-            
+        
+        // Read hex file - use system task to avoid warnings about file size
+        $display("Loading program.hex into memory...");
         $readmemh("program.hex", memory);
+        $display("Memory initialization complete");
     end
 
     // PicoRV32 memory interface

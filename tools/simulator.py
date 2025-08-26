@@ -77,39 +77,8 @@ class SimulatorRunner:
         
         # Convert binary to hex format
         hex_file = output_dir / "program.hex"
+        temp_bin = output_dir / "program.bin"
         
-        # Check if input is ELF file, if so convert to raw binary first
-        if program_binary.suffix == '' and program_binary.stat().st_size > 1000:
-            # Likely an ELF file, convert to raw binary first
-            raw_binary = output_dir / "program.bin"
-            
-            # Use objcopy to extract raw binary from ELF
-            result = subprocess.run([
-                "llvm-objcopy", "-O", "binary", str(program_binary), str(raw_binary)
-            ], capture_output=True, text=True)
-            
-            if result.returncode != 0:
-                # Fallback: try with rust objcopy
-                result = subprocess.run([
-                    "rust-objcopy", "-O", "binary", str(program_binary), str(raw_binary)
-                ], capture_output=True, text=True)
-                
-                if result.returncode != 0:
-                    raise RuntimeError(f"Failed to convert ELF to binary: {result.stderr}")
-            
-            program_binary = raw_binary
-        
-        # Import BinaryToHexConverter and use it
-        import sys
-        import os
-        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        from tools.bin_converter import BinaryToHexConverter
-        
-        # Get word size from core_info (default to 4 bytes for 32-bit)
-        word_size = core_info.get("memory", {}).get("word_size", 4)
-        
-        # Create converter with the specified word size
-        converter = BinaryToHexConverter(word_size=word_size)
         # Get memory size from core_info
         memory_size_str = core_info.get("memory", {}).get("size", "64K")
         if "K" in memory_size_str:
@@ -127,8 +96,92 @@ class SimulatorRunner:
         # Print debug info
         print(f"Memory size: {memory_size} bytes, word size: {word_size} bytes, {memory_words} words")
         
-        # Convert binary to hex with padding
-        converter.convert(program_binary, hex_file, min_words=memory_words)
+        # Find the appropriate objcopy tool
+        objcopy_tools = [
+            "riscv64-unknown-elf-objcopy",
+            "riscv32-unknown-elf-objcopy",
+            "riscv-none-embed-objcopy",
+            "riscv-none-elf-objcopy",
+            "riscv-objcopy",
+            "rust-objcopy",
+            "llvm-objcopy"
+        ]
+        
+        objcopy = None
+        for tool in objcopy_tools:
+            if subprocess.run(["which", tool], capture_output=True).returncode == 0:
+                objcopy = tool
+                break
+        
+        if not objcopy:
+            print("⚠️ No RISC-V binary tools found. Install riscv-gnu-toolchain for better compatibility.")
+            raise RuntimeError("Could not find objcopy tool. Please install RISC-V GNU toolchain.")
+        
+        print(f"Using {objcopy} for binary conversion")
+        
+        # First convert to raw binary if needed (for ELF files)
+        if program_binary.suffix == '' and program_binary.stat().st_size > 1000:
+            # Likely an ELF file, convert to raw binary first
+            result = subprocess.run([
+                objcopy, "-O", "binary", str(program_binary), str(temp_bin)
+            ], capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                raise RuntimeError(f"Failed to convert ELF to binary: {result.stderr}")
+                
+            program_binary = temp_bin
+        elif program_binary != temp_bin:
+            # Copy the file to temp_bin
+            import shutil
+            shutil.copy(program_binary, temp_bin)
+            program_binary = temp_bin
+        
+        # Pad the binary file with zeros to ensure it has enough words
+        file_size = program_binary.stat().st_size
+        required_size = memory_words * word_size
+        
+        if file_size < required_size:
+            # Pad with zeros
+            with open(program_binary, 'ab') as f:
+                padding = b'\x00' * (required_size - file_size)
+                f.write(padding)
+            print(f"Padded binary: {file_size} bytes -> {required_size} bytes ({file_size // word_size} words -> {memory_words} words)")
+        
+        # We'll just use manual conversion to ensure Verilog compatibility
+        print("Creating Verilog hex file manually...")
+        
+        # Manual conversion - create a properly formatted hex file for Verilog
+        with open(program_binary, 'rb') as f:
+            binary_data = f.read()
+        
+        # Get total number of words
+        total_words = len(binary_data) // word_size
+        if len(binary_data) % word_size != 0:
+            total_words += 1
+        
+        # Pad to exactly memory_words
+        if total_words < memory_words:
+            binary_data = binary_data + b'\x00' * ((memory_words - total_words) * word_size)
+        elif total_words > memory_words:
+            # Trim to memory_words
+            binary_data = binary_data[:memory_words * word_size]
+            print(f"Warning: Binary too large, truncating to {memory_words} words")
+        
+        with open(hex_file, 'w') as f:
+            # Format bytes into 32-bit words (4 bytes per word)
+            for i in range(0, len(binary_data), word_size):
+                # Extract up to 4 bytes (pad with zeros if needed)
+                word_bytes = binary_data[i:i+word_size]
+                if len(word_bytes) < word_size:
+                    word_bytes = word_bytes + b'\x00' * (word_size - len(word_bytes))
+                
+                # Convert to 32-bit word value (little-endian by default)
+                word_value = int.from_bytes(word_bytes, byteorder="little")
+                
+                # Write as hex value (8 digits, no 0x prefix)
+                f.write(f"{word_value:08x}\n")
+        
+        print(f"Created Verilog hex file with exactly {memory_words} words")
         
         # Copy core files to simulation directory
         for verilog_file in core_info.get("verilog_files", []):
