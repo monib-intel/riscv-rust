@@ -1,7 +1,7 @@
 # RISC-V Rust Development Environment
 # ===================================
 
-SHELL := /bin/bash
+SHELL := $(shell which bash)
 .DEFAULT_GOAL := help
 
 # Directories
