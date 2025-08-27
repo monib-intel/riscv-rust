@@ -180,16 +180,14 @@ class RegressionRunner:
         binary_path = output_dir / f"{project_name}.bin"
         
         objcopy_cmd = [
-            "cargo", "objcopy", 
-            "--release", 
-            "--", 
-            "-O", "binary", 
+            "llvm-objcopy", 
+            "-O", "binary",
+            str(project_path / "target" / "riscv32i-unknown-none-elf" / "release" / f"picorv32-{project_name}"),
             str(binary_path)
         ]
         
         result = subprocess.run(
             objcopy_cmd,
-            cwd=project_path,
             capture_output=True,
             text=True
         )

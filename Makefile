@@ -46,7 +46,7 @@ setup-python: ## [DEPRECATED] Python environment is now provided by Nix
 .PHONY: check-deps
 check-deps: ## Check if all dependencies are installed
 	@echo "Checking dependencies..."
-	@command -v rustup >/dev/null 2>&1 || (echo "❌ Rust not found" && exit 1)
+	@command -v rustc >/dev/null 2>&1 || (echo "❌ Rust not found" && exit 1)
 	@command -v iverilog >/dev/null 2>&1 || (echo "❌ Icarus Verilog not found" && exit 1)
 	@command -v $(PYTHON) >/dev/null 2>&1 || (echo "❌ Python 3 not found" && exit 1)
 	@if command -v riscv64-unknown-elf-objcopy >/dev/null 2>&1; then \

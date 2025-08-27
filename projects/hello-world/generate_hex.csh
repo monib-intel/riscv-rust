@@ -13,7 +13,7 @@ endif
 
 # Generate binary file from ELF
 echo "Generating binary file from ELF..."
-riscv32-unknown-elf-objcopy -O binary $BINARY_PATH hello_world.bin
+llvm-objcopy -O binary $BINARY_PATH hello_world.bin
 
 # Generate hex file from binary
 echo "Generating hex file from binary..."

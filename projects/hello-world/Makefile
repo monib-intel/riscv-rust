@@ -18,7 +18,7 @@ build:
 	$(RISCV_PREFIX)ld -T memory.x start.o $(RUST_TARGET_DIR)/rust-hello-world.o -o $(RUST_TARGET_DIR)/firmware.elf
 	
 	# Generate binary
-	$(RISCV_PREFIX)objcopy -O binary $(RUST_TARGET_DIR)/firmware.elf $(RUST_TARGET_DIR)/firmware.bin
+	llvm-objcopy -O binary $(RUST_TARGET_DIR)/firmware.elf $(RUST_TARGET_DIR)/firmware.bin
 	
 	# Generate hex file for simulation
 	xxd -p -c 4 $(RUST_TARGET_DIR)/firmware.bin > $(RUST_TARGET_DIR)/firmware.hex

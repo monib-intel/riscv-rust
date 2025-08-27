@@ -82,7 +82,7 @@
             riscvToolchain
             
             # Verilog simulation - conditionally include if available
-            (lib.optional (lib.hasAttr "icarus-verilog" pkgs) icarus-verilog)
+            (lib.optional (lib.hasAttr "iverilog" pkgs) iverilog)
             (lib.optional (lib.hasAttr "gtkwave" pkgs) gtkwave)
             
             # Python
