@@ -1,0 +1,10 @@
+{
+  "tests": [
+    {
+      "description": "Hello World Test",
+      "cores": ["picorv32"],
+      "expected_output": ["Hello, World from Rust on RISC-V!"],
+      "timeout": 10000
+    }
+  ]
+}
