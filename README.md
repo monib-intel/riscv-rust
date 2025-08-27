@@ -182,6 +182,20 @@ projects/my-project/
 - GTKWave (for viewing VCD waveforms)
 - VS Code with Rust extensions
 
+### Using Nix/Flakes (Recommended)
+
+This repository provides a Nix Flakes setup for a consistent development environment across machines:
+
+```bash
+# Using Nix Flakes (recommended)
+nix develop
+
+# Or with traditional Nix
+nix-shell
+```
+
+See [NIX_SETUP.md](NIX_SETUP.md) for more details on using the Nix-based development environment.
+
 ## 🔍 Examples
 
 ### Hello World

@@ -1,3 +1,4 @@
+```ignore
 # Build artifacts
 output/
 build/
@@ -7,6 +8,13 @@ target/
 *.vcd
 *_sim
 
+# Nix
+.direnv/
+result
+result-*
+.tmp_flake*
+.nix-direnv/
+
 # Python cache
 __pycache__/
 *.pyc
@@ -14,6 +22,8 @@ __pycache__/
 *.pyd
 .Python
 *.so
+.venv/
+.pytest_cache/
 
 # Rust artifacts
 Cargo.lock

@@ -1,0 +1,31 @@
+name: Nix CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  nix-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Nix
+        uses: cachix/install-nix-action@v22
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      
+      - name: Build development environment
+        run: |
+          nix develop --command echo "Nix environment works!"
+      
+      - name: Build hello-world example
+        run: |
+          nix develop --command make build PROJECT=hello-world
+      
+      - name: Run tests
+        run: |
+          nix develop --command make test-hello-world
