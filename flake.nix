@@ -28,16 +28,13 @@
           extensions = [ "rust-src" "cargo" "rustc" "rust-analyzer" "llvm-tools" ];
         };
 
-        # Python environment with dependencies
+        # Python environment with minimal dependencies to avoid mpi4py
         pythonEnv = pkgs.python3.withPackages (ps: with ps; [
           pytest
           pytest-xdist
           pyyaml
           rich
           click
-          mypy
-          black
-          flake8
         ]);
 
         # RISC-V toolchain with fallbacks for different Nixpkgs versions
@@ -85,12 +82,17 @@
             (lib.optional (lib.hasAttr "iverilog" pkgs) iverilog)
             (lib.optional (lib.hasAttr "gtkwave" pkgs) gtkwave)
             
-            # Python
-            pythonEnv
+            # Physical design tools - conditionally include if available
+            (lib.optional (lib.hasAttr "yosys" pkgs) yosys)
+            (lib.optional (lib.hasAttr "openroad" pkgs) openroad)
+            (lib.optional (lib.hasAttr "klayout" pkgs) klayout)
             
             # Build tools
             gnumake
             pkg-config
+            
+            # Python
+            pythonEnv
             
             # Utilities
             bash
@@ -103,6 +105,7 @@
             echo "RISC-V Rust Development Environment activated!"
             echo "-------------------------------------------"
             echo "Run 'make help' to see available commands"
+            echo "Run 'make check-physical-deps' to check physical design tools"
           '';
 
           # Set environment variables

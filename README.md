@@ -35,6 +35,7 @@ riscv-rust/
 ├── Makefile              # Build system
 ├── README.md             # This file
 ├── NIX_SETUP.md          # Detailed Nix setup guide
+├── PHYSICAL_DESIGN.md    # OpenROAD/OpenPDK integration guide
 ├── projects/             # Rust projects
 │   └── hello-world/      # Example project
 ├── cores/                # RISC-V core implementations
@@ -43,8 +44,10 @@ riscv-rust/
 │   ├── project_manager.py
 │   ├── regression.py
 │   ├── run_regression.py
-│   └── simulator.py
+│   ├── simulator.py
+│   └── physical_design/  # Physical design tools
 ├── tests/                # Regression test suite
+├── physical/             # Physical design outputs
 └── output/               # Build and simulation outputs
 ```
 
@@ -73,6 +76,7 @@ The Nix environment includes:
 - ✅ Icarus Verilog for simulation
 - ✅ Python with all testing dependencies (pytest, pyyaml, rich, etc.)
 - ✅ All build tools (make, pkg-config, etc.)
+- ✅ Physical design tools (OpenROAD, Yosys, KLayout, etc. when available)
 
 ### Traditional Setup
 
@@ -82,6 +86,7 @@ If you prefer not to use Nix, you'll need to install these dependencies manually
 - RISC-V GNU Toolchain or LLVM tools
 - Icarus Verilog (iverilog)
 - Python 3 with pytest and pyyaml
+- For physical design: OpenROAD, Yosys, and a PDK (see PHYSICAL_DESIGN.md)
 
 ## 🎯 Makefile Targets
 
@@ -97,6 +102,14 @@ If you prefer not to use Nix, you'll need to install these dependencies manually
 ### Core Management
 - `make list-cores` - List available cores
 - `make core-info CORE=name` - Show core information
+
+### Physical Design (OpenROAD/OpenPDK)
+- `make check-physical-deps` - Check physical design dependencies
+- `make setup-physical CORE=name PDK=name` - Set up physical design for a core
+- `make run-synthesis CORE=name` - Run synthesis
+- `make run-pnr CORE=name` - Run place-and-route
+- `make run-signoff CORE=name` - Run signoff
+- `make run-physical-flow CORE=name PDK=name` - Run full physical design flow
 
 ### Testing
 - `make regression` - Run comprehensive regression tests
@@ -133,12 +146,15 @@ nix develop --command python3 tools/run_regression.py -v
 2. **Create a new project** in `projects/`
 3. **Build your project**: `make build PROJECT=your-project`
 4. **Simulate**: `make simulate PROJECT=your-project CORE=picorv32`
-5. **Test**: Add tests in `tests/` and run `make regression`
+5. **Physical design**: `make run-physical-flow CORE=picorv32`
+6. **Test**: Add tests in `tests/` and run `make regression`
 
 ## 📚 Additional Documentation
 
 - [NIX_SETUP.md](NIX_SETUP.md) - Detailed Nix setup and troubleshooting
+- [NIX_FLAKE_ISSUES.md](NIX_FLAKE_ISSUES.md) - Solutions for Nix flake configuration issues
 - [REGRESSION_TESTING.md](REGRESSION_TESTING.md) - Testing framework documentation
+- [PHYSICAL_DESIGN.md](PHYSICAL_DESIGN.md) - OpenROAD and OpenPDK integration
 
 ## 🔄 GitHub Actions
 

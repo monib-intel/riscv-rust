@@ -21,6 +21,7 @@ SIMULATOR := $(PYTHON) $(TOOLS_DIR)/simulator.py
 PROJECT ?= hello-world
 CORE ?= picorv32
 RELEASE ?= true
+PDK ?= sky130
 
 ## Help system
 .PHONY: help
@@ -35,6 +36,7 @@ help: ## Show this help message
 	@echo "  PROJECT  - Project name (default: $(PROJECT))"
 	@echo "  CORE     - Core name (default: $(CORE))"
 	@echo "  RELEASE  - Build in release mode (default: $(RELEASE))"
+	@echo "  PDK      - Process Design Kit (default: $(PDK))"
 
 ## Setup and initialization
 .PHONY: setup-python
@@ -108,6 +110,7 @@ core-info: ## Show core information (CORE=name)
 clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(OUTPUT_DIR)/*
+	@rm -rf physical/
 	@for project_dir in $(PROJECTS_DIR)/*/; do \
 		if [ -f "$$project_dir/Cargo.toml" ]; then \
 			echo "Cleaning $$project_dir"; \
@@ -115,6 +118,50 @@ clean: ## Clean build artifacts
 		fi; \
 	done
 	@echo "Clean complete"
+
+.PHONY: clean-physical
+clean-physical: ## Clean only physical design artifacts
+	@echo "Cleaning physical design artifacts..."
+	@rm -rf $(OUTPUT_DIR)/physical/
+
+## Physical Design (OpenROAD/OpenPDK)
+.PHONY: check-physical-deps
+check-physical-deps: ## Check physical design dependencies
+	@echo "Checking physical design dependencies..."
+	@command -v yosys >/dev/null 2>&1 || (echo "❌ Yosys not found" && exit 1)
+	@command -v openroad >/dev/null 2>&1 || (echo "❌ OpenROAD not found" && exit 1)
+	@command -v klayout >/dev/null 2>&1 || (echo "⚠️  KLayout not found (optional)" && true)
+	@echo "✅ Physical design tools found"
+
+.PHONY: setup-physical
+setup-physical: check-core ## Set up physical design for a core (CORE=name, PDK=name)
+	@echo "Setting up physical design for core $(CORE) with PDK $(PDK)..."
+	@mkdir -p physical/$(CORE)
+	@$(PYTHON) $(TOOLS_DIR)/physical_design/setup.py $(CORE) $(PDK)
+
+.PHONY: run-synthesis
+run-synthesis: check-core ## Run synthesis (CORE=name)
+	@echo "Running synthesis for core $(CORE)..."
+	@$(PYTHON) $(TOOLS_DIR)/physical_design/synthesize.py $(CORE)
+
+.PHONY: run-pnr
+run-pnr: check-core ## Run place-and-route (CORE=name)
+	@echo "Running place-and-route for core $(CORE)..."
+	@$(PYTHON) $(TOOLS_DIR)/physical_design/pnr.py $(CORE)
+
+.PHONY: run-signoff
+run-signoff: check-core ## Run signoff (CORE=name)
+	@echo "Running signoff for core $(CORE)..."
+	@$(PYTHON) $(TOOLS_DIR)/physical_design/signoff.py $(CORE)
+
+.PHONY: run-physical-flow
+run-physical-flow: check-core ## Run full physical design flow (CORE=name, PDK=name)
+	@echo "Running full physical design flow for core $(CORE) with PDK $(PDK)..."
+	@$(MAKE) setup-physical CORE=$(CORE) PDK=$(PDK)
+	@$(MAKE) run-synthesis CORE=$(CORE)
+	@$(MAKE) run-pnr CORE=$(CORE)
+	@$(MAKE) run-signoff CORE=$(CORE)
+	@echo "✅ Physical design flow complete"
 
 ## Testing
 .PHONY: regression
