@@ -25,7 +25,7 @@
         # Rust nightly with RISC-V target
         rustToolchain = pkgs.rust-bin.nightly.latest.default.override {
           targets = [ "riscv32i-unknown-none-elf" ];
-          extensions = [ "rust-src" "cargo" "rustc" "rust-analyzer" ];
+          extensions = [ "rust-src" "cargo" "rustc" "rust-analyzer" "llvm-tools" ];
         };
 
         # Python environment with dependencies
@@ -40,7 +40,7 @@
           flake8
         ]);
 
-                # RISC-V toolchain with fallbacks for different Nixpkgs versions
+        # RISC-V toolchain with fallbacks for different Nixpkgs versions
         riscvToolchain = let
           # Try different possible package names across Nixpkgs versions
           candidates = [
@@ -87,7 +87,6 @@
             
             # Python
             pythonEnv
-            uv
             
             # Build tools
             gnumake
@@ -100,34 +99,10 @@
           ];
 
           shellHook = ''
-            # Set environment variables
-            export PATH=$PATH:''${HOME}/.cargo/bin
-            
             # Welcome message
             echo "RISC-V Rust Development Environment activated!"
             echo "-------------------------------------------"
             echo "Run 'make help' to see available commands"
-            
-            # Check if cargo-binutils is installed
-            if ! command -v cargo-objcopy &>/dev/null; then
-              echo -e "\n⚠️  cargo-binutils is not installed but is required for some commands."
-              echo "   You can install it manually with: cargo install cargo-binutils"
-            fi
-            
-            # Create a virtual environment if it doesn't exist
-            if command -v uv &>/dev/null && [ ! -d ".venv" ]; then
-              echo "Creating Python virtual environment..."
-              uv venv -p python3 .venv
-              if [ -f "requirements.txt" ]; then
-                uv pip install --python ./.venv/bin/python3 -r requirements.txt
-              fi
-            elif [ ! -d ".venv" ] && command -v python3 &>/dev/null; then
-              echo "Creating Python virtual environment with standard tools..."
-              python3 -m venv .venv
-              if [ -f "requirements.txt" ]; then
-                ./.venv/bin/pip install -r requirements.txt
-              fi
-            fi
           '';
 
           # Set environment variables

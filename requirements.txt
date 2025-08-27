@@ -1,6 +1,6 @@
-# RISC-V Rust Development Tools Requirements
-# ===========================================
+# This file is deprecated - Python dependencies are now managed by Nix
+# See flake.nix for the Python environment configuration
 
-# Testing dependencies
-pytest>=7.4.0              # For regression testing
-pytest-xdist>=3.3.0        # For parallel test execution (optional)
+# Original dependencies (now in flake.nix):
+# pytest>=7.4.0
+# pytest-xdist>=3.3.0

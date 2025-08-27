@@ -10,10 +10,8 @@ CORES_DIR := cores
 TOOLS_DIR := tools
 OUTPUT_DIR := output
 
-# Python interpreter and virtual environment
+# Python interpreter (use system python which is provided by Nix)
 PYTHON := python3
-VENV_DIR := $(CURDIR)/.venv
-VENV_PYTHON := $(VENV_DIR)/bin/python3
 
 # Tools
 PROJECT_MANAGER := $(PYTHON) $(TOOLS_DIR)/project_manager.py
@@ -40,17 +38,10 @@ help: ## Show this help message
 
 ## Setup and initialization
 .PHONY: setup-python
-setup-python: ## Set up Python environment with uv
-	@echo "Setting up Python environment..."
-	@if ! command -v uv >/dev/null 2>&1; then \
-		echo "Installing uv..."; \
-		curl -LsSf https://astral.sh/uv/install.sh | sh; \
-	fi
-	@echo "Creating virtual environment at $(VENV_DIR)..."
-	@uv venv -p $(PYTHON) $(VENV_DIR)
-	@echo "Installing Python dependencies with uv..."
-	@uv pip install --python $(VENV_PYTHON) -r requirements.txt
-	@echo "Python setup complete!"
+setup-python: ## [DEPRECATED] Python environment is now provided by Nix
+	@echo "⚠️  This target is deprecated."
+	@echo "   Python dependencies are now provided by the Nix environment."
+	@echo "   Run 'nix develop' to activate the environment."
 
 .PHONY: check-deps
 check-deps: ## Check if all dependencies are installed
@@ -68,25 +59,11 @@ check-deps: ## Check if all dependencies are installed
 		echo "❌ No RISC-V binary tools found"; \
 		exit 1; \
 	fi
-	@if command -v uv >/dev/null 2>&1; then \
-		echo "✅ uv package manager found"; \
-	else \
-		echo "❌ uv package manager not found"; \
-		echo "   Install with: curl -LsSf https://astral.sh/uv/install.sh | sh"; \
-		exit 1; \
-	fi
-	@if [ -d "$(VENV_DIR)" ] && [ -f "$(VENV_PYTHON)" ]; then \
-		echo "✅ Python virtual environment found"; \
-	else \
-		echo "❌ Python virtual environment not found"; \
-		echo "   Run: make setup-python"; \
-		exit 1; \
-	fi
-	@if $(VENV_PYTHON) -c "import pytest" >/dev/null 2>&1; then \
+	@if $(PYTHON) -c "import pytest" >/dev/null 2>&1; then \
 		echo "✅ Python dependencies installed"; \
 	else \
 		echo "❌ Python dependencies missing"; \
-		echo "   Run: make setup-python"; \
+		echo "   Dependencies are provided by Nix environment"; \
 		exit 1; \
 	fi
 	@echo "✅ All dependencies found"
@@ -104,7 +81,7 @@ project-info: ## Show project information (PROJECT=name)
 .PHONY: build
 build: check-deps check-project ## Build a project (PROJECT=name)
 	@echo "Building project $(PROJECT)..."
-	@cd $(PROJECTS_DIR)/$(PROJECT) && . "$$HOME/.cargo/env" && \
+	@cd $(PROJECTS_DIR)/$(PROJECT) && \
 	cargo build --release --target riscv32i-unknown-none-elf
 
 ## Simulation
@@ -112,8 +89,8 @@ build: check-deps check-project ## Build a project (PROJECT=name)
 simulate: check-deps check-project check-core build ## Simulate a project (PROJECT=name, CORE=name)
 	@echo "Running simulation: $(PROJECT) on $(CORE)"
 	@mkdir -p $(OUTPUT_DIR)/$(PROJECT)
-	@cd $(PROJECTS_DIR)/$(PROJECT) && . "$$HOME/.cargo/env" && \
-	cargo objcopy --release -- -O binary $(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin
+	@cd $(PROJECTS_DIR)/$(PROJECT) && \
+	llvm-objcopy -O binary target/riscv32i-unknown-none-elf/release/picorv32-$(PROJECT) $(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin
 	@BINARY_PATH="$(PWD)/$(OUTPUT_DIR)/$(PROJECT)/$(PROJECT).bin"; \
 	$(SIMULATOR) run $(CORE) "$$BINARY_PATH"
 
@@ -142,7 +119,7 @@ clean: ## Clean build artifacts
 ## Testing
 .PHONY: regression
 regression: check-deps ## Run regression tests
-	@$(VENV_PYTHON) $(TOOLS_DIR)/run_regression.py -v
+	@$(PYTHON) $(TOOLS_DIR)/run_regression.py -v
 
 .PHONY: test-hello-world
 test-hello-world: ## Run the hello-world test
