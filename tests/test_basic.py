@@ -3,13 +3,15 @@
 Basic test file for RISC-V Rust projects.
 """
 
-import os
 import sys
 import pytest
 from pathlib import Path
 
+# Add the tools directory to path
+sys.path.append(str(Path(__file__).parent.parent))
+
 # Import the regression runner
-from regression import TestConfig
+from tools.regression import TestConfig
 
 def test_hello_world_on_picorv32(regression_runner):
     """Test the hello-world project on picorv32."""

@@ -2,15 +2,5 @@
 # ===========================================
 
 # Testing dependencies
-pytest>=7.4.0,<8.0.0       # For regression testing
-pytest-xdist>=3.3.0        # For parallel test execution
-
-# Utilities
-pyyaml>=6.0.0              # For YAML configuration support
-rich>=13.4.0               # For rich terminal output
-click>=8.1.6               # For better CLI interfaces
-
-# Development tools
-mypy>=1.5.0                # For static type checking
-black>=23.7.0              # For code formatting
-flake8>=6.1.0              # For code linting
+pytest>=7.4.0              # For regression testing
+pytest-xdist>=3.3.0        # For parallel test execution (optional)

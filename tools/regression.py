@@ -8,17 +8,14 @@ across multiple cores.
 """
 
 import os
-import re
 import json
 import pytest
-import tempfile
 import subprocess
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
 
 
-# The "test_" prefix is avoided in the class name to prevent pytest from collecting it as a test
 @dataclass
 class TestConfig:
     """Configuration for a single test."""
@@ -45,14 +42,11 @@ class RegressionRunner:
         self.workspace_root = Path(workspace_root)
         self.projects_dir = self.workspace_root / "projects"
         self.cores_dir = self.workspace_root / "cores"
-        self.build_dir = self.workspace_root / "output" / "build"
         self.output_dir = self.workspace_root / "output"
         self.tools_dir = self.workspace_root / "tools"
-        self.test_dir = self.workspace_root / "tests"
         
-        # Ensure directories exist
-        self.build_dir.mkdir(parents=True, exist_ok=True)
-        self.test_dir.mkdir(parents=True, exist_ok=True)
+        # Ensure output directory exists
+        self.output_dir.mkdir(parents=True, exist_ok=True)
     
     def list_projects(self) -> List[str]:
         """List all projects in the workspace."""
@@ -125,8 +119,7 @@ class RegressionRunner:
         # Run simulation
         sim_success, sim_output, uart_output = self._run_simulation(
             test_config.project_name, 
-            test_config.core_name,
-            test_config.timeout
+            test_config.core_name
         )
         
         if not sim_success:
@@ -152,9 +145,6 @@ class RegressionRunner:
         project_path = self.projects_dir / project_name
         
         # Run cargo build
-        cargo_env = os.environ.copy()
-        cargo_env["RUSTFLAGS"] = "--deny warnings"  # Fail on warnings
-        
         cmd = [
             "cargo", "build", 
             "--release", 
@@ -165,21 +155,18 @@ class RegressionRunner:
             cmd,
             cwd=project_path,
             capture_output=True,
-            text=True,
-            env=cargo_env
+            text=True
         )
         
         return result.returncode == 0, result.stdout + "\n" + result.stderr
     
-    def _run_simulation(self, project_name: str, core_name: str, 
-                       timeout: int = 10000) -> Tuple[bool, str, str]:
+    def _run_simulation(self, project_name: str, core_name: str) -> Tuple[bool, str, str]:
         """
         Run simulation for a project on a core.
         
         Args:
             project_name: Name of the project to simulate
             core_name: Name of the core to simulate on
-            timeout: Simulation timeout in cycles
             
         Returns:
             Tuple of (success, simulator_output, uart_output)

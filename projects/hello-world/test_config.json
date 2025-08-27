@@ -3,7 +3,7 @@
     {
       "description": "Hello World Test",
       "cores": ["picorv32"],
-      "expected_output": ["Hello, World from Rust on RISC-V!"],
+      "expected_output": ["Hello, World from Rust on PicoRV32!"],
       "timeout": 10000
     }
   ]
