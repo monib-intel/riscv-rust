@@ -19,28 +19,20 @@ On Ubuntu 22.04, install the required tools:
 
 ```bash
 # Install Yosys
-sudo apt-get install -y yosys
 
 # Install KLayout (optional)
-sudo apt-get install -y klayout
 
 # Install OpenROAD dependencies
-sudo apt-get install -y cmake gcc g++ git qtbase5-dev libqt5core5a python3-dev libboost-all-dev zlib1g-dev tcl-dev swig libspdlog-dev libeigen3-dev
 
 # Build and install OpenROAD
-git clone --recursive https://github.com/The-OpenROAD-Project/OpenROAD.git
-cd OpenROAD
-mkdir build
-cd build
-cmake ..
-make -j$(nproc)
-sudo make install
 
 # Verify installations
-yosys -V
-openroad -version
-klayout -v
+
+
 ```
+## Flow Script
+
+https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
 
 ## Supported PDKs
 
@@ -58,7 +50,7 @@ make setup-physical CORE=picorv32 PDK=sky130
 ```
 
 This creates:
-- `physical/picorv32/` directory structure
+- `physical/<pdk>/picorv32/` directory structure
 - Configuration file with design parameters
 - Copies Verilog files to synthesis directory
 
@@ -70,9 +62,9 @@ make run-synthesis CORE=picorv32
 ```
 
 Outputs:
-- `physical/picorv32/synthesis/picorv32_synth.v` - Gate-level netlist
-- `physical/picorv32/synthesis/picorv32_synth.json` - JSON representation
-- `physical/picorv32/synthesis/synthesis.log` - Synthesis log
+- `output/<pdk>/physical/picorv32/synthesis/picorv32_synth.v` - Gate-level netlist
+- `output/<pdk>/physical/picorv32/synthesis/picorv32_synth.json` - JSON representation
+- `output/<pdk>/physical/picorv32/synthesis/synthesis.log` - Synthesis log
 
 ### 3. Run Place-and-Route
 
@@ -82,9 +74,9 @@ make run-pnr CORE=picorv32
 ```
 
 Outputs:
-- `physical/picorv32/pnr/picorv32_pnr.v` - Placed and routed netlist
-- `physical/picorv32/pnr/picorv32_placed.def` - DEF layout file
-- `physical/picorv32/pnr/pnr.log` - PnR log
+- `output/<pdk>/physical/picorv32/pnr/picorv32_pnr.v` - Placed and routed netlist
+- `output/<pdk>/physical/picorv32/pnr/picorv32_placed.def` - DEF layout file
+- `output/<pdk>/physical/picorv32/pnr/pnr.log` - PnR log
 
 ### 4. Run Signoff Checks
 
@@ -94,10 +86,10 @@ make run-signoff CORE=picorv32
 ```
 
 Outputs:
-- `physical/picorv32/signoff/drc_report.txt` - Design rule check
-- `physical/picorv32/signoff/lvs_report.txt` - Layout vs schematic
-- `physical/picorv32/signoff/antenna_report.txt` - Antenna rule check
-- `physical/picorv32/signoff/signoff_summary.txt` - Overall summary
+- `output/<pdk>/physical/picorv32/signoff/drc_report.txt` - Design rule check
+- `output/<pdk>/physical/picorv32/signoff/lvs_report.txt` - Layout vs schematic
+- `output/<pdk>/physical/picorv32/signoff/antenna_report.txt` - Antenna rule check
+- `output/<pdk>/physical/picorv32/signoff/signoff_summary.txt` - Overall summary
 
 ### 5. Complete Flow
 
@@ -111,25 +103,27 @@ make run-physical-flow CORE=picorv32 PDK=sky130
 After setup, the physical design directory structure looks like:
 
 ```
-physical/
-└── picorv32/
-    ├── config.json              # Physical design configuration
-    ├── synthesis/
-    │   ├── picorv32.v           # RTL source (copied)
-    │   ├── picorv32_synth.v     # Synthesized netlist
-    │   ├── picorv32_synth.json  # JSON netlist
-    │   ├── synthesis.ys         # Yosys script
-    │   └── synthesis.log        # Synthesis log
-    ├── pnr/
-    │   ├── picorv32_pnr.v       # Placed and routed netlist
-    │   ├── picorv32_placed.def  # DEF layout
-    │   ├── pnr.tcl              # OpenROAD script
-    │   └── pnr.log              # PnR log
-    └── signoff/
-        ├── drc_report.txt       # DRC results
-        ├── lvs_report.txt       # LVS results
-        ├── antenna_report.txt   # Antenna check results
-        └── signoff_summary.txt  # Summary report
+output/
+└── physical/
+  └── <pdk>/
+      └── picorv32/
+          ├── config.json              # Physical design configuration
+          ├── synthesis/
+          │   ├── picorv32.v           # RTL source (copied)
+          │   ├── picorv32_synth.v     # Synthesized netlist
+          │   ├── picorv32_synth.json  # JSON netlist
+          │   ├── synthesis.ys         # Yosys script
+          │   └── synthesis.log        # Synthesis log
+          ├── pnr/
+          │   ├── picorv32_pnr.v       # Placed and routed netlist
+          │   ├── picorv32_placed.def  # DEF layout
+          │   ├── pnr.tcl              # OpenROAD script
+          │   └── pnr.log              # PnR log
+          └── signoff/
+              ├── drc_report.txt       # DRC results
+              ├── lvs_report.txt       # LVS results
+              ├── antenna_report.txt   # Antenna check results
+              └── signoff_summary.txt  # Summary report
 ```
 
 ## Configuration
@@ -244,31 +238,6 @@ VERBOSE=1 make run-synthesis CORE=picorv32
 Example GitHub Actions workflow:
 
 ```yaml
-name: Physical Design Flow
-on: [push, pull_request]
-
-jobs:
-  physical-design:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Install Nix
-        uses: cachix/install-nix-action@v18
-        with:
-          extra_nix_config: |
-            experimental-features = nix-command flakes
-      
-      - name: Run physical design flow
-        run: |
-          nix develop --command make check-physical-deps
-          nix develop --command make run-physical-flow CORE=picorv32 PDK=sky130
-      
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: physical-design-outputs
-          path: physical/
 ```
 
 ## Future Enhancements
