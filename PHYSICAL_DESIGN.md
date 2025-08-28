@@ -15,24 +15,31 @@ The physical design flow transforms synthesizable RTL (Verilog) into physical la
 
 ### Required Tools
 
-The Nix environment automatically provides these tools when available:
-
-```bash
-# Check if physical design tools are available
-make check-physical-deps
-```
-
-### Manual Installation (if not using Nix)
+On Ubuntu 22.04, install the required tools:
 
 ```bash
 # Install Yosys
-sudo apt-get install yosys
-
-# Install OpenROAD (varies by distribution)
-# See: https://openroad.readthedocs.io/
+sudo apt-get install -y yosys
 
 # Install KLayout (optional)
-sudo apt-get install klayout
+sudo apt-get install -y klayout
+
+# Install OpenROAD dependencies
+sudo apt-get install -y cmake gcc g++ git qtbase5-dev libqt5core5a python3-dev libboost-all-dev zlib1g-dev tcl-dev swig libspdlog-dev libeigen3-dev
+
+# Build and install OpenROAD
+git clone --recursive https://github.com/The-OpenROAD-Project/OpenROAD.git
+cd OpenROAD
+mkdir build
+cd build
+cmake ..
+make -j$(nproc)
+sudo make install
+
+# Verify installations
+yosys -V
+openroad -version
+klayout -v
 ```
 
 ## Supported PDKs
