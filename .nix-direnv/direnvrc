@@ -1,2 +1,0 @@
-# Load nix-direnv to optimize rebuilds and caching
-source ${fetchurl "https://raw.githubusercontent.com/nix-community/nix-direnv/2.3.0/direnvrc" "sha256:0HU50r3EEP9Bfp0+B3lOYnMXeZGaoULyxPYzZsmYCpA="}

@@ -1,40 +1,33 @@
 # RISC-V Rust Development Environment
 
-A fully self-contained development environment for simulating Rust programs on RISC-V processor cores using Nix.
+A comprehensive development environment for simulating Rust programs on RISC-V processor cores.
 
 ## 🚀 Quick Start
 
-### Option 1: Using Nix (Recommended)
+1. Follow the setup instructions in [SETUP.md](SETUP.md) to install dependencies.
 
+2. Activate the Python virtual environment:
 ```bash
-# Enter the development environment
-nix develop
-
-# Run the hello-world example
-make example
-
-# Run regression tests
-make regression
+source .venv/bin/activate
 ```
 
-### Option 2: Traditional Setup
-
+3. Run the hello-world example:
 ```bash
-# Check dependencies
-make check-deps
-
-# Run the hello-world example
 make example
+```
+
+4. Run regression tests:
+```bash
+make regression
 ```
 
 ## 📁 Project Structure
 
 ```
 riscv-rust/
-├── flake.nix             # Nix development environment
 ├── Makefile              # Build system
 ├── README.md             # This file
-├── NIX_SETUP.md          # Detailed Nix setup guide
+├── SETUP.md              # Setup instructions
 ├── PHYSICAL_DESIGN.md    # OpenROAD/OpenPDK integration guide
 ├── projects/             # Rust projects
 │   └── hello-world/      # Example project

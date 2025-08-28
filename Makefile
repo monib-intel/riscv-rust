@@ -10,8 +10,9 @@ CORES_DIR := cores
 TOOLS_DIR := tools
 OUTPUT_DIR := output
 
-# Python interpreter (use system python which is provided by Nix)
-PYTHON := python3
+# Python interpreter and virtual environment
+VENV := .venv
+PYTHON := . $(VENV)/bin/activate && python3
 
 # Tools
 PROJECT_MANAGER := $(PYTHON) $(TOOLS_DIR)/project_manager.py
@@ -39,18 +40,26 @@ help: ## Show this help message
 	@echo "  PDK      - Process Design Kit (default: $(PDK))"
 
 ## Setup and initialization
-.PHONY: setup-python
-setup-python: ## [DEPRECATED] Python environment is now provided by Nix
-	@echo "⚠️  This target is deprecated."
-	@echo "   Python dependencies are now provided by the Nix environment."
-	@echo "   Run 'nix develop' to activate the environment."
+.PHONY: setup
+setup: ## Setup development environment
+	@echo "Setting up development environment..."
+	@command -v python3 >/dev/null 2>&1 || (echo "❌ Python 3 not found" && exit 1)
+	@command -v uv >/dev/null 2>&1 || (echo "Installing uv..." && pip install uv)
+	@test -d $(VENV) || (echo "Creating virtual environment..." && uv venv $(VENV))
+	@. $(VENV)/bin/activate && uv pip install pytest pytest-xdist pytest-cov pyyaml rich click setuptools wheel pathlib
+	@echo "✅ Python environment ready"
+	@command -v rustc >/dev/null 2>&1 || (echo "Installing Rust..." && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y)
+	@. ~/.cargo/env && rustup target add riscv32i-unknown-none-elf
+	@echo "✅ Rust environment ready"
 
 .PHONY: check-deps
 check-deps: ## Check if all dependencies are installed
 	@echo "Checking dependencies..."
 	@command -v rustc >/dev/null 2>&1 || (echo "❌ Rust not found" && exit 1)
 	@command -v iverilog >/dev/null 2>&1 || (echo "❌ Icarus Verilog not found" && exit 1)
-	@command -v $(PYTHON) >/dev/null 2>&1 || (echo "❌ Python 3 not found" && exit 1)
+	@command -v python3 >/dev/null 2>&1 || (echo "❌ Python 3 not found" && exit 1)
+	@test -d $(VENV) || (echo "❌ Python virtual environment not found. Run 'make setup' first" && exit 1)
+	@. $(VENV)/bin/activate && python3 -c "import pytest" >/dev/null 2>&1 || (echo "❌ Python dependencies missing. Run 'make setup' first" && exit 1)
 	@if command -v riscv64-unknown-elf-objcopy >/dev/null 2>&1; then \
 		echo "✅ RISC-V GNU tools found"; \
 	elif command -v riscv32-unknown-elf-objcopy >/dev/null 2>&1; then \
@@ -61,12 +70,13 @@ check-deps: ## Check if all dependencies are installed
 		echo "❌ No RISC-V binary tools found"; \
 		exit 1; \
 	fi
-	@if $(PYTHON) -c "import pytest" >/dev/null 2>&1; then \
-		echo "✅ Python dependencies installed"; \
+	@echo "✅ All dependencies found"
+	@if [ -d "$(VENV)" ]; then \
+		. $(VENV)/bin/activate && python3 -c "import pytest" >/dev/null 2>&1 && \
+		echo "✅ Python dependencies installed" || \
+		(echo "❌ Python dependencies missing. Run 'make setup' to install them." && exit 1); \
 	else \
-		echo "❌ Python dependencies missing"; \
-		echo "   Dependencies are provided by Nix environment"; \
-		exit 1; \
+		echo "❌ Python virtual environment not found. Run 'make setup' to create it." && exit 1; \
 	fi
 	@echo "✅ All dependencies found"
 
